@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N5 Vocabulary Quiz with Audio</title>
+    <style>
+        body { 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            text-align: center; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px; 
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        h2 {
+            color: white;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .card { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            margin-bottom: 20px;
+        }
+        .score-board {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        img { 
+            width: 250px; 
+            height: 250px; 
+            border-radius: 15px; 
+            object-fit: cover; 
+            margin: 20px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        #hint {
+            font-size: 20px;
+            color: #333;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        input { 
+            padding: 12px; 
+            font-size: 20px; 
+            border: 3px solid #667eea; 
+            border-radius: 10px; 
+            width: 85%; 
+            margin-top: 15px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+        .button-group {
+            margin-top: 20px;
+        }
+        button { 
+            padding: 12px 30px; 
+            font-size: 18px; 
+            background-color: #4CAF50; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        button:hover { 
+            background-color: #45a049; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .audio-btn {
+            background-color: #2196F3;
+            font-size: 24px;
+            padding: 15px 25px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .audio-btn:hover {
+            background-color: #0b7dda;
+        }
+        #message { 
+            margin-top: 20px; 
+            font-weight: bold; 
+            font-size: 22px; 
+            min-height: 30px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .progress {
+            color: #666;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🎌 日常会話の練習をしましょう！</h2>
+        
+        <div class="score-board">
+            スコア: <span id="score">0</span> / <span id="total">0</span> 
+            | 正解率: <span id="accuracy">0</span>%
+        </div>
+
+        <div class="card">
+            <div id="image-container">
+                <img id="quiz-image" src="https://via.placeholder.com/250?text=Start" alt="Quiz Item">
+            </div>
+            
+            <button class="audio-btn" onclick="playAudio()" title="音声を聞く">🔊</button>
+            
+            <p id="hint">What is this in Japanese?</p>
+            <p class="progress">問題 <span id="current">1</span> / <span id="total-questions">20</span></p>
+            
+            <input type="text" id="answer-input" placeholder="ひらがなで入力してね" onkeypress="handleEnter(event)">
+            
+            <div class="button-group">
+                <button onclick="checkAnswer()">チェック！✓</button>
+                <button onclick="skipQuestion()" style="background-color: #ff9800;">スキップ ⏭</button>
+            </div>
+            
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            { image: "https://via.placeholder.com/250/90EE90/000000?text=お茶", answer: "おちゃ", hint: "Green Tea (お茶)", reading: "ocha" },
+            { image: "https://via.placeholder.com/250/87CEEB/000000?text=魚", answer: "さかな", hint: "Fish (魚)", reading: "sakana" },
+            { image: "https://via.placeholder.com/250/FFB6C1/000000?text=家", answer: "いえ", hint: "House/Home (家)", reading: "ie" },
+            { image: "https://via.placeholder.com/250/B0E0E6/000000?text=寒い", answer: "さむい", hint: "Cold (寒い)", reading: "samui" },
+            { image: "https://via.placeholder.com/250/ADD8E6/000000?text=水", answer: "みず", hint: "Water (水)", reading: "mizu" },
+            { image: "https://via.placeholder.com/250/DEB887/000000?text=本", answer: "ほん", hint: "Book (本)", reading: "hon" },
+            { image: "https://via.placeholder.com/250/F4A460/000000?text=犬", answer: "いぬ", hint: "Dog (犬)", reading: "inu" },
+            { image: "https://via.placeholder.com/250/FFE4B5/000000?text=猫", answer: "ねこ", hint: "Cat (猫)", reading: "neko" },
+            { image: "https://via.placeholder.com/250/C0C0C0/000000?text=車", answer: "くるま", hint: "Car (車)", reading: "kuruma" },
+            { image: "https://via.placeholder.com/250/98FB98/000000?text=木", answer: "き", hint: "Tree (木)", reading: "ki" },
+            { image: "https://via.placeholder.com/250/FFB6C1/000000?text=花", answer: "はな", hint: "Flower (花)", reading: "hana" },
+            { image: "https://via.placeholder.com/250/8FBC8F/000000?text=山", answer: "やま", hint: "Mountain (山)", reading: "yama" },
+            { image: "https://via.placeholder.com/250/B0C4DE/000000?text=雨", answer: "あめ", hint: "Rain (雨)", reading: "ame" },
+            { image: "https://via.placeholder.com/250/FFD700/000000?text=太陽", answer: "たいよう", hint: "Sun (太陽)", reading: "taiyou" },
+            { image: "https://via.placeholder.com/250/F0E68C/000000?text=月", answer: "つき", hint: "Moon (月)", reading: "tsuki" },
+            { image: "https://via.placeholder.com/250/FFFACD/000000?text=ご飯", answer: "ごはん", hint: "Rice/Meal (ご飯)", reading: "gohan" },
+            { image: "https://via.placeholder.com/250/F5DEB3/000000?text=パン", answer: "ぱん", hint: "Bread (パン)", reading: "pan" },
+            { image: "https://via.placeholder.com/250/FF6347/000000?text=りんご", answer: "りんご", hint: "Apple (りんご)", reading: "ringo" },
+            { image: "https://via.placeholder.com/250/87CEFA/000000?text=学校", answer: "がっこう", hint: "School (学校)", reading: "gakkou" },
+            { image: "https://via.placeholder.com/250/FFA07A/000000?text=友達", answer: "ともだち", hint: "Friend (友達)", reading: "tomodachi" }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        let totalAttempts = 0;
+
+        function playAudio() {
+            const currentWord = quizData[currentIndex].answer;
+            const utterance = new SpeechSynthesisUtterance(currentWord);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 0.8;
+            speechSynthesis.speak(utterance);
+        }
+
+        function checkAnswer() {
+            const input = document.getElementById('answer-input').value.trim();
+            const message = document.getElementById('message');
+            totalAttempts++;
+            
+            if (input === quizData[currentIndex].answer) {
+                score++;
+                message.style.color = "green";
+                message.style.backgroundColor = "#d4edda";
+                message.innerText = "正解！素晴らしいです！✨ 🎉";
+                playSuccessSound();
+                updateScore();
+                setTimeout(nextQuiz, 1500);
+            } else {
+                message.style.color = "#721c24";
+                message.style.backgroundColor = "#f8d7da";
+                message.innerText = "惜しい！もう一度挑戦してね！💪";
+                updateScore();
+            }
+        }
+
+        function skipQuestion() {
+            totalAttempts++;
+            const message = document.getElementById('message');
+            message.style.color = "#856404";
+            message.style.backgroundColor = "#fff3cd";
+            message.innerText = `答えは「${quizData[currentIndex].answer}」でした！`;
+            updateScore();
+            setTimeout(nextQuiz, 2000);
+        }
+
+        function nextQuiz() {
+            currentIndex = (currentIndex + 1) % quizData.length;
+            document.getElementById('quiz-image').src = quizData[currentIndex].image;
+            document.getElementById('hint').innerText = quizData[currentIndex].hint;
+            document.getElementById('answer-input').value = "";
+            document.getElementById('message').innerText = "";
+            document.getElementById('message').style.backgroundColor = "transparent";
+            document.getElementById('current').innerText = currentIndex + 1;
+        }
+
+        function updateScore() {
+            document.getElementById('score').innerText = score;
+            document.getElementById('total').innerText = totalAttempts;
+            const accuracy = totalAttempts > 0 ? Math.round((score / totalAttempts) * 100) : 0;
+            document.getElementById('accuracy').innerText = accuracy;
+        }
+
+        function playSuccessSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
+        }
+
+        window.onload = function() {
+            document.getElementById('total-questions').innerText = quizData.length;
+            document.getElementById('quiz-image').src = quizData[0].image;
+            document.getElementById('hint').innerText = quizData[0].hint;
+        };
+    </script>
+</body>
+</html>
